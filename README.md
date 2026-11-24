@@ -19,16 +19,16 @@ small, additive, and each one has a stated way to check it is done.
 
 ## What is in here
 
-| File | What it asks for | Effort | When |
-|---|---|---|---|
-| [`00-launch-gate.md`](00-launch-gate.md) | Six things that must be true at cutover or the site is invisible to Google | — | **Before launch** |
-| [`01-no-hoa-land.md`](01-no-hoa-land.md) | Answer "land for sale … no HOA" — the single most specific buying phrase in this market | M | After launch |
-| [`02-for-sale-by-owner.md`](02-for-sale-by-owner.md) | Answer "by owner" / FSBO searches on the search pages | S | After launch |
-| [`03-happy-jack-facts.md`](03-happy-jack-facts.md) | One block of plain facts: zip code, population, elevation, how far | S | After launch |
-| [`04-forest-lakes-christopher-creek.md`](04-forest-lakes-christopher-creek.md) | Two neighbouring communities with real search demand and no coverage | M | After launch |
-| [`05-property-spec-modifiers.md`](05-property-spec-modifiers.md) | Tiny homes, mobile/manufactured, square footage, well depth | S–M | After launch |
-| [`06-schema-upgrades.md`](06-schema-upgrades.md) | `RealEstateAgent`, breadcrumbs, `ItemList`, `Article` | M | After launch |
-| [`07-measurement.md`](07-measurement.md) | Turn on Search Console, record a baseline, stop guessing | S | Launch week |
+| File | What it asks for | Effort | When | Issue |
+|---|---|---|---|---|
+| [`00-launch-gate.md`](00-launch-gate.md) | Six things that must be true at cutover or the site is invisible to Google | — | **Before launch** | [#1](../../issues/1) |
+| [`01-no-hoa-land.md`](01-no-hoa-land.md) | Answer "land for sale … no HOA" — the single most specific buying phrase in this market | M | After launch | [#2](../../issues/2) |
+| [`02-for-sale-by-owner.md`](02-for-sale-by-owner.md) | Answer "by owner" / FSBO searches on the search pages | S | After launch | [#3](../../issues/3) |
+| [`03-happy-jack-facts.md`](03-happy-jack-facts.md) | One block of plain facts: zip code, population, elevation, how far | S | After launch | [#4](../../issues/4) |
+| [`04-forest-lakes-christopher-creek.md`](04-forest-lakes-christopher-creek.md) | Two neighbouring communities with real search demand and no coverage | M | After launch | [#5](../../issues/5) |
+| [`05-property-spec-modifiers.md`](05-property-spec-modifiers.md) | Tiny homes, mobile/manufactured, square footage, well depth | S–M | After launch | [#6](../../issues/6) |
+| [`06-schema-upgrades.md`](06-schema-upgrades.md) | `RealEstateAgent`, plus one correction to an earlier claim | S | After launch | [#7](../../issues/7) |
+| [`07-measurement.md`](07-measurement.md) | Turn on Search Console, record a baseline, stop guessing | S | Launch week | [#8](../../issues/8) |
 
 ## How this was built (so it can be checked)
 
