@@ -1,0 +1,59 @@
+# Happy Jack site — post-launch additions for the Replit build
+
+Suggestions for **`happyjack-site.replit.app`**, derived from what people actually type into
+Google for Happy Jack, Pine, Strawberry and the surrounding Rim communities.
+
+**Prepared:** 24 November 2026 · **Author:** Bot 1 (research bot) on behalf of Jackie Thresher
+· **Target:** the Replit build, before and shortly after cutover to `happyjackrealestate.com`
+
+---
+
+## Read this first
+
+The build is in good shape. All the page types we expected to be missing are already there —
+land, homes, cabins, subdivisions, Pine & Strawberry, Blue Ridge, guides, agents, map search.
+Nothing here asks anyone to rewrite a page that already exists.
+
+Every item below is a **gap between a phrase people type and a phrase the site says**. They are
+small, additive, and each one has a stated way to check it is done.
+
+## What is in here
+
+| File | What it asks for | Effort | When |
+|---|---|---|---|
+| [`00-launch-gate.md`](00-launch-gate.md) | Six things that must be true at cutover or the site is invisible to Google | — | **Before launch** |
+| [`01-no-hoa-land.md`](01-no-hoa-land.md) | Answer "land for sale … no HOA" — the single most specific buying phrase in this market | M | After launch |
+| [`02-for-sale-by-owner.md`](02-for-sale-by-owner.md) | Answer "by owner" / FSBO searches on the search pages | S | After launch |
+| [`03-happy-jack-facts.md`](03-happy-jack-facts.md) | One block of plain facts: zip code, population, elevation, how far | S | After launch |
+| [`04-forest-lakes-christopher-creek.md`](04-forest-lakes-christopher-creek.md) | Two neighbouring communities with real search demand and no coverage | M | After launch |
+| [`05-property-spec-modifiers.md`](05-property-spec-modifiers.md) | Tiny homes, mobile/manufactured, square footage, well depth | S–M | After launch |
+| [`06-schema-upgrades.md`](06-schema-upgrades.md) | `RealEstateAgent`, breadcrumbs, `ItemList`, `Article` | M | After launch |
+| [`07-measurement.md`](07-measurement.md) | Turn on Search Console, record a baseline, stop guessing | S | Launch week |
+
+## How this was built (so it can be checked)
+
+- **Query evidence** — Google Autocomplete, harvested 24 November 2026 from
+  `suggestqueries.google.com` with `hl=en&gl=us`, 19 seed phrases. Autocomplete shows that a
+  phrase is *searched by real people*; it does **not** show volume. No volume claims are made
+  anywhere in this repo. Raw completions are in [`evidence/autocomplete-2026-11-24.md`](evidence/autocomplete-2026-11-24.md).
+- **Site evidence** — each of the 14 highest-value pages fetched live from
+  `https://happyjack-site.replit.app` on 24 November 2026 and searched for the phrase in
+  question. Counts are exact substring counts on the served HTML, quoted per item.
+  Matrix in [`evidence/term-matrix-2026-11-24.md`](evidence/term-matrix-2026-11-24.md).
+- **Nothing here is a ranking prediction.** The success measure for this site is phone calls,
+  not positions. Search visibility is how someone finds the number to call.
+
+## How to review
+
+Open an **Issue** for anything you disagree with, want to defer, or need a decision on — one
+issue per file name is fine, or comment on the existing issues. Closing an issue is a valid
+"done" signal. If something here contradicts something the build already does, the build wins;
+say so in the issue and it gets corrected here.
+
+## One correction worth stating
+
+The staging build is currently **not indexable**: every page carries
+`<meta name="robots" content="noindex, nofollow, noarchive">`, `robots.txt` says
+`Disallow: /`, there is no `/sitemap.xml` (404) and no canonical tag anywhere. That is correct
+for staging and must be reversed at cutover. It is item one in
+[`00-launch-gate.md`](00-launch-gate.md) and it is the only thing here that is genuinely urgent.
