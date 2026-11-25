@@ -14,6 +14,15 @@ items are written so they can be worked straight through.
 
 **The backup is the live site.** Not "close to" it — measurably the same bytes.
 
+> **Scope correction, 25 Nov — what this does and does not establish.** This comparison is the
+> **deployment against its own source**, which is what it was designed to test: that the running
+> `replit.app` site is the committed code, nothing extra served, nothing missing. It does **not** establish
+> that the replacement site faithfully reproduces the **old Wix** site. Those are different questions, and
+> the second one has not been answered by byte comparison anywhere in this repository. A rebuild is
+> expected to differ in markup; the test that matters is inventory and reconciliation — every old Wix URL
+> maps to a replacement URL, and every content block is accounted for. Treat "the two match" as
+> deployment fidelity only.
+
 | Check | Result |
 |---|---|
 | HTML pages compared | **62/62 identical** after removing the two scripts Replit injects at serve time |

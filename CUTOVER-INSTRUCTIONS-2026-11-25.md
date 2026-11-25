@@ -76,6 +76,16 @@ Also true, and worth knowing before you start:
 
 ## Part 1 — Make the new site indexable (in Replit's code)
 
+> **Superseded in part — read before acting (corrected 25 Nov, after reviewing the candidate).**
+> The prepared candidate on `happyjack-site:backup/precutover-review-20261125-1850` does this job
+> differently, and better: it serves the indexable output **only on `www`** and keeps the temporary
+> Replit address `noindex` on purpose, with an `X-Robots-Tag` header, so the `replit.app` address can
+> never compete with the real site in search. Therefore: **(a)** do not apply `patches/` over that
+> implementation — it is superseded; **(b)** the "tape is off" checks in 1.2 must be run against **`www`
+> after the DNS change**, not against `happyjack-site.replit.app`, which is *supposed* to stay `noindex`;
+> **(c)** if the candidate is approved, 1.1 and 1.2 are background rather than instruction.
+
+
 **Why:** the deployment today serves `build/staging-noindex`, a copy where every page carries
 `<meta name="robots" content="noindex, nofollow, noarchive">` and `robots.txt` says `Disallow: /`.
 That is why the site is invisible to Google. The ready-to-serve copy is `build/happyjack-mirror-hosted`
