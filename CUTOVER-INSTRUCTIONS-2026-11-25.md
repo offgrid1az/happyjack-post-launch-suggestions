@@ -115,21 +115,20 @@ python3 public_root.py build/happyjack-mirror-hosted      # expect: PASS ... 8 a
 python3 -m unittest discover -p 'test_*.py'
 ```
 
-The first must pass. The second will report **5 failures** — and they are *expected*, because five
+The first must pass. The second will report **4 failures** — and they are *expected*, because four
 tests were written to protect the staging copy and now assert the very thing we removed. They are:
 
 ```
-test_chat.ServerTests.test_public_paths_only_and_preserved_headers   (path='/', path='/moqui-drive')
+test_chat.ServerTests.test_public_paths_only_and_preserved_headers   (path='/')
 test_delivery.DeliveryTests.test_gzip_negotiation_and_head_consistency
-test_delivery.DeliveryTests.test_real_error_statuses_and_private_files   ('/moqui-drive')
+test_delivery.DeliveryTests.test_real_error_statuses_and_private_files
 test_property_search_pages.PropertySearchPageTests.test_served_new_routes_and_staging_protection
 ```
 
-Change those five assertions to expect `index, follow` on a served page and a `301` for
-`/moqui-drive` (Part 1.3 explains why the 301 is correct). Do not "fix" them by putting the
-staging folder back.
+Change those four assertions to expect `index, follow` on a served page. Do not "fix" them by putting
+the staging folder back.
 
-### 1.3 Four old Wix addresses will 404 unless you add the 301 map
+### 1.3 Three old Wix addresses will 404 unless you add the 301 map
 
 Checked live today on `happyjack-site.replit.app`. Nine old addresses need to keep working:
 
@@ -140,26 +139,59 @@ Checked live today on `happyjack-site.replit.app`. Nine old addresses need to ke
 | `/post/escape-to-happy-jack-arizona-…` | 301 → the rebuilt article | ✅ |
 | `/post/*` (any other Wix blog link) | 301 → `/blog` | ✅ |
 | `/blog-feed.xml` | 301 → `/blog` | ✅ |
-| `/moqui-drive` | **404** | 301 → `/` ❌ |
 | `/pages-sitemap.xml` | **404** | 301 → `/sitemap.xml` ❌ |
 | `/blog-posts-sitemap.xml` | **404** | 301 → `/sitemap.xml` ❌ |
 | `/blog-categories-sitemap.xml` | **404** | 301 → `/sitemap.xml` ❌ |
+| `/moqui-drive` | **404** | **404 — leave it alone** |
 
-The last four are the Wix sitemap children and one old listing page — addresses Google has already
-seen. A 404 there costs a little traffic and a Search Console error; a 301 costs nothing.
+The three Wix sitemap children are addresses Google has already seen; a 404 there costs a little
+traffic and a Search Console error, a 301 costs nothing.
 
-All nine rules already exist in one place, `hosting/redirects.json`, and are used to generate the
-`_redirects` file. They are just not wired into the Python server. A drop-in patch is attached:
+**`/moqui-drive` is different, and it is the one place where this document disagrees with the
+repository.** The listing was deleted on 29 Oct 2026 (sold; individual listings now come from the IDX
+feed), and `AUDIT-DECISIONS-2026-11-17.md` F5 records the decision to leave it as a **genuine 404**:
+*"No generic homepage 301 was invented."* But `hosting/redirects.json` — written before a host was
+chosen — still maps it to `/`, and `make_redirects.py` propagates that into `_redirects` and
+`vercel.json`. So the artifact and the decision contradict each other, and the live host follows the
+decision (404).
+
+**Do not resolve that contradiction by accident.** The patch below reads `redirects.json` for the
+other eight rules and refuses the `/moqui-drive` one, with a comment saying why. If you want it to
+redirect instead, that is a decision for the owner, and it belongs in one commit that changes
+`hosting/redirects.json`, `test_redirects.py` (which currently requires every live URL to be
+covered) and this document together.
+
+For the other eight, all the rules already exist in `hosting/redirects.json` and are used to generate
+`_redirects`; they are simply not wired into the Python server. A drop-in patch is attached:
 **`patches/happyjack-cutover-server.patch`**. It
 
 - serves the hosted tree,
-- answers old URLs with real 301s read from `hosting/redirects.json` (query strings kept,
-  security headers kept),
+- answers the eight old URLs with real 301s read from `hosting/redirects.json` (query strings kept,
+  security headers kept), and holds `/moqui-drive` at 404,
 - sends the **bare domain to `www`** with a 301 — which is the piece Replit does not provide.
 
-Verified locally today, all nine rules and the bare-domain redirect answering correctly.
+Verified locally today: all eight 301s answering correctly, `/moqui-drive` and `/moqui-drive/` both
+404 with the designed error page, bare-domain redirect correct.
 
-### 1.4 Optional: turn off Replit's own extras
+### 1.4 Tag what you actually shipped — do not call the backup "production"
+
+The backup commit `9f378709` is a **pre-cutover baseline**, not the release. It still contains the
+staging-serving setup, the dead old URLs and the `noindex` sign. Once the Part 1 changes are committed,
+tag *that* commit as the approved production revision:
+
+```bash
+git status --short                       # expect: the changes you just made, nothing else
+git commit -am "Launch: serve indexable tree, wire legacy 301s, apex to www"
+git tag -a production-2026-11-25 -m "Approved production revision for the Wix cutover"
+git push origin HEAD && git push origin production-2026-11-25
+```
+
+Leave `backup/current-20261125-154950` exactly where it is, unmodified — it is the evidence that what
+was deployed before the change was what was verified. **Never deploy the unchanged backup and call that
+the production switch.** Build and deploy from the tagged commit, from a branch off `9f378709` — do not
+merge `main`, which is 67 commits behind and carries an old revert.
+
+### 1.5 Optional: turn off Replit's own extras
 
 Replit injects two `<script>` tags into every page (an analytics/feedback loader) and can show a
 "Made with Replit" badge. Both are deployment settings, not repository settings. Look under the
@@ -183,6 +215,10 @@ telling Google to go away.
 ---
 
 ## Part 2 — Add the two permanent notes at Wix DNS (do this first)
+
+**Neither of these is a prerequisite for moving the domain.** The move works without them. Do them
+first only because there is exactly one convenient moment — while Wix still holds the address book —
+and they become fiddly afterwards. If you are impatient, skip to Part 3 and come back.
 
 These survive the move and must stay forever.
 
@@ -289,9 +325,11 @@ curl -s https://www.happyjackrealestate.com/ | grep -o '<link rel="canonical"[^>
 curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://happyjackrealestate.com/  # expect 301 https://www.happyjackrealestate.com/
 
 # 4. old Wix addresses still resolve
-for u in /home /moqui-drive /pages-sitemap.xml /blog-posts-sitemap.xml /blog-categories-sitemap.xml; do
-  printf '%-28s ' "$u"; curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://www.happyjackrealestate.com$u"; done
-#    expect 301 for every one, never 404
+for u in /home /pages-sitemap.xml /blog-posts-sitemap.xml /blog-categories-sitemap.xml /blog-feed.xml; do
+  printf '%-30s ' "$u"; curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "https://www.happyjackrealestate.com$u"; done
+#    expect 301 for every one
+curl -s -o /dev/null -w 'moqui-drive %{http_code}\n' https://www.happyjackrealestate.com/moqui-drive
+#    expect 404 — the sold listing was deleted 2026-10-29 and stays deleted (see 1.3)
 
 # 5. DNS is on Replit, not Wix
 curl -s 'https://dns.google/resolve?name=www.happyjackrealestate.com&type=A' \
@@ -332,7 +370,7 @@ TTL.
 - **The `replit.app` address keeps working** after the move, alongside `www`. Its pages carry a `www`
   canonical, so Google will consolidate to `www` on its own.
 - **The CSP still permits `https://i.replit.com`.** It can be tightened later, once Replit's injected
-  scripts are switched off (Part 1.4).
+  scripts are switched off (Part 1.5).
 
 ## What I verified, and what I did not
 
@@ -341,8 +379,11 @@ TTL.
 - The three-string change serves the indexable tree — I applied it to a clone, booted the server and
   measured: `/robots.txt` `Allow: /`, `/sitemap.xml` 200 with 58 URLs, `/llms.txt` 200, homepage
   canonical + `index, follow`.
-- The 301 map plus bare-domain redirect work — all nine legacy URLs answer 301 with query strings
-  preserved, and `http://happyjackrealestate.com/blog` answers `301 https://www.happyjackrealestate.com/blog`.
+- The 301 map plus bare-domain redirect work — the eight legacy URLs answer 301 with query strings
+  preserved, `/moqui-drive` and `/moqui-drive/` both answer 404 with the designed error page, and
+  `http://happyjackrealestate.com/blog` answers `301 https://www.happyjackrealestate.com/blog`.
+- The held page stays held: `/financing` answers `noindex, nofollow` and appears zero times in the
+  58-URL sitemap.
 - Current DNS: three Wix A records at the apex, `cdn3.wixdns.net` CNAME at `www`, no TXT, no MX, no
   common subdomains. Nothing else lives on this domain.
 - Live behaviour of `happyjack-site.replit.app`, including which four old URLs 404 today.

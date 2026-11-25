@@ -89,7 +89,7 @@ The real sitemap is fine and current:
 `llms.txt` (27.6 KB) is in the same position — present in the repo, absent from the deployment. **Check
 after cutover:** `/sitemap.xml` and `/llms.txt` both return 200 and `/robots.txt` references the sitemap.
 
-### C3 — Four old Wix URLs 404 today. The other five already answer 301. *(corrected 25 Nov, measured)*
+### C3 — Three old Wix URLs 404 today. Five already answer 301, `/moqui-drive` 404s on purpose. *(corrected 25 Nov, measured)*
 
 `hosting/redirects.json` holds **9 rules** (8 exact + a `/post/*` net), and `make_redirects.py` generates
 `_redirects` from it. That file is Netlify syntax, and Replit does not read it.
@@ -114,10 +114,17 @@ is not a 301". In this app it usually is: `server.py` canonicalises any request 
 The four 404s are the three Wix sitemap children and one old listing page — exactly the addresses Search
 Console has already seen from the Wix years.
 
-**What to do:** read the nine rules from `hosting/redirects.json` in `server.py` and answer 301 before file
-resolution, keeping the query string and the deployment's security headers. A drop-in patch is in
+**What to do:** read the eight actionable rules from `hosting/redirects.json` in `server.py` and answer 301
+before file resolution, keeping the query string and the deployment's security headers. A drop-in patch is in
 `CUTOVER-INSTRUCTIONS-2026-11-25.md` §1.3 (`patches/happyjack-cutover-server.patch`). It also adds the piece
 Replit does not provide at all: **bare domain → `www` 301**.
+
+**`/moqui-drive` is deliberately excluded, and this report previously got that wrong.** It maps to `/` in
+`hosting/redirects.json`, but `AUDIT-DECISIONS-2026-11-17.md` F5 records the opposite decision — the sold
+listing was deleted 2026-10-29 and *"No generic homepage 301 was invented; any launch redirect should follow
+the approved legacy map."* The live host follows the decision, not the artifact: 404. The patch holds that
+one URL at 404 and carries the reason in a comment, so the contradiction cannot be closed silently by a
+deploy. Reconciling `redirects.json`, `test_redirects.py` and the decision is an owner call, in one commit.
 
 **Checked after the patch:** all nine rules answer 301 with query strings preserved, and
 `Host: happyjackrealestate.com` on `/blog` answers `301 https://www.happyjackrealestate.com/blog`, while
