@@ -36,13 +36,21 @@ measurements rather than quotations.
 
 ## Step 2 — Verify the deployment before DNS changes
 
-Checks that do not need the domain: `/robots.txt` `Allow: /`; `/sitemap.xml` with 58 `<loc>`; `/llms.txt` 200;
-the 11 redirects returning 301 with the correct destination and the query string preserved; `/moqui-drive` and
-`/moqui-drive/` returning 404; `/financing` returning `noindex, nofollow` and absent from the sitemap; the
-temporary host still `noindex` with `X-Robots-Tag` so it cannot compete with `www`; `_redirects` and internal
-documents returning 404.
+Two different jobs, and they must not be confused — corrected 26 Nov:
 
-Anything failing here is fixed before the domain is touched, at no risk to the live site.
+**Pre-DNS, application level.** Drive the app in-process (or through the temporary host) and assert what the
+*production* host would receive: `robots.txt` `Allow: /`, `/sitemap.xml` with the expected `<loc>` count,
+`/llms.txt` 200, the 11 redirects returning 301 with destination and query preserved, `/moqui-drive` 404,
+`/financing` `noindex, nofollow` and absent from the sitemap, `_redirects` and internal documents 404.
+
+**The temporary Replit host is not part of that.** It deliberately serves protected staging: do not require its
+`robots` to allow crawling, and do not require its production sitemap or `llms.txt` to return 200. It is supposed
+to be `noindex`.
+
+**Post-DNS, public.** Everything above, verified from outside against `www`, plus canonical tags, certificates and
+apex redirects — those cannot be tested before the records change.
+
+Anything failing in the pre-DNS bucket is fixed before the domain is touched, at no risk to the live site.
 
 ## Step 3 — One short DNS window
 
@@ -70,17 +78,19 @@ after the site is verified live, and are not a prerequisite for the move.
 
 ## Rollback
 
-Restore the four records: three apex A records to the addresses in step 0, `www` CNAME to `cdn3.wixdns.net`.
-With TTLs at 300 the site is back within five minutes.
+Restore the four records: three apex A records to the addresses in step 0, `www` CNAME to `cdn3.wixdns.net`, and
+**remove any new record that conflicts with them** — a stale Replit record left alongside a restored Wix record is
+an unpredictable split, not a rollback. Keep the replacement records at the short TTL as well, so that a rollback
+is not itself cached for an hour.
+
+With TTLs at 300 recovery is normally a few minutes. That is an expectation, not a guarantee: resolvers honour
+TTLs inconsistently and any conflicting record extends the window.
 
 Nothing in steps 1 and 2 needs undoing to roll back — the deployment can stay up untouched.
 
 ## The one thing that must not be lost
 
-Keeping Wix's nameservers keeps the domain's address book inside the Wix account. That is fine for the cutover
-and **fatal at subscription cancellation**: cancelling Wix takes the domain down with it, however healthy the
-deployment is. Moving DNS to the registrar belongs to the retirement track, on its own date, before the Wix
-subscription ends.
+
 
 ## What is not a gate
 
