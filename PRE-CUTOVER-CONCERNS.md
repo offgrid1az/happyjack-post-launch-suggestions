@@ -56,9 +56,21 @@ every page, no canonical tags anywhere, and a `robots.txt` that disallows everyt
 tree. One change, and items 1–4 of `00-launch-gate.md` are satisfied by content that has already been
 reviewed. **Check afterwards:** every page has exactly one absolute canonical on `www` and no `noindex`.
 
-> Note for `public_root.py`: it infers the profile from the directory name (`"staging" in basename`). Serve
-> the hosted tree from a path whose name does not contain "staging", or pass the profile explicitly, or the
-> stricter staging allowlist will reject a legitimate hosted root.
+> **Correction, 25 Nov, measured — the build line alone does nothing.** `server.py:57` hard-codes
+> `public = Path(directory or ROOT / "build/staging-noindex")` and `server.py:58` passes the profile as a
+> literal: `violations(str(public), "staging")`. The server, not the build command, chooses the folder, so a
+> deployment whose build line points at the hosted tree would still serve the staging tree. Two files must
+> change, three strings in total: the build line in `.replit`, line 57 and line 58 of `server.py`.
+>
+> Also wrong in the earlier version of this note: `public_root.py` does **not** infer the profile. `violations(tree,
+> profile="hosted")` defaults to hosted and `server.py` overrides it with `"staging"` explicitly. Only the
+> `public_root.py` command-line entry point infers from the directory name. Passing the hosted tree with the
+> literal `"staging"` profile is therefore accepted — it is the staging allowlist, which is the smaller one,
+> so the mistake fails silently instead of loudly.
+>
+> Measured: applying all three string changes to a clone and booting the app gives `/robots.txt` `Allow: /`,
+> `/sitemap.xml` 200 with 58 `<loc>`, `/llms.txt` 200, homepage canonical + `index, follow`. The repo's own
+> suite then reports **5 failures**, all of them tests that assert the staging behaviour being removed.
 
 ### C2 — The sitemap already exists. Staging drops it on purpose, so `/sitemap.xml` 404s today.
 
@@ -77,19 +89,39 @@ The real sitemap is fine and current:
 `llms.txt` (27.6 KB) is in the same position — present in the repo, absent from the deployment. **Check
 after cutover:** `/sitemap.xml` and `/llms.txt` both return 200 and `/robots.txt` references the sitemap.
 
-### C3 — The redirect map is in a format Replit does not serve.
+### C3 — Four old Wix URLs 404 today. The other five already answer 301. *(corrected 25 Nov, measured)*
 
-`build/happyjack-mirror-hosted/_redirects` holds **12 rules** (generated from `redirects.json`), including the
-old Wix-era `/home` and `/post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona` URLs. That is
-Netlify syntax.
+`hosting/redirects.json` holds **9 rules** (8 exact + a `/post/*` net), and `make_redirects.py` generates
+`_redirects` from it. That file is Netlify syntax, and Replit does not read it.
 
-`.replit` currently expresses only a subset as `[[deployment.rewrites]]`. **A rewrite is not a 301** — the
-browser keeps the old URL, so the moved page is not consolidated and the old URL stays in Google. For a
-domain that has been on Wix for years, the redirected legacy URLs are exactly the ones carrying history.
+**What I got wrong in the first version of this report, and what is actually true.** I wrote that "a rewrite
+is not a 301". In this app it usually is: `server.py` canonicalises any request that resolves to an existing
+`index.html`, and answers 301. So every rewrite in `.replit` that lands on an `index.html` already returns
+301. Measured on the live host today:
 
-**What to do:** confirm which of the 12 `_redirects` rules are *permanent moves* and make sure they answer
-**301** at an edge that can emit status codes (Cloudflare in front of the domain, or the registrar), not only
-as internal rewrites. Regex-style nets (`/post/*`) are fine as rewrites; individual old URLs are not.
+| Old URL | Live answer |
+|---|---|
+| `/home`, `/home/` | 301 → `/` |
+| `/post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona` | 301 → `/posts/owning-vs-renting-a-cabin-in-happy-jack` |
+| `/post/escape-to-happy-jack-arizona-…` | 301 → same article |
+| `/post/*` (anything else) | 301 → `/blog` |
+| `/blog-feed.xml` | 301 → `/blog` |
+| `/moqui-drive` | **404** |
+| `/pages-sitemap.xml` | **404** |
+| `/blog-posts-sitemap.xml` | **404** |
+| `/blog-categories-sitemap.xml` | **404** |
+
+The four 404s are the three Wix sitemap children and one old listing page — exactly the addresses Search
+Console has already seen from the Wix years.
+
+**What to do:** read the nine rules from `hosting/redirects.json` in `server.py` and answer 301 before file
+resolution, keeping the query string and the deployment's security headers. A drop-in patch is in
+`CUTOVER-INSTRUCTIONS-2026-11-25.md` §1.3 (`patches/happyjack-cutover-server.patch`). It also adds the piece
+Replit does not provide at all: **bare domain → `www` 301**.
+
+**Checked after the patch:** all nine rules answer 301 with query strings preserved, and
+`Host: happyjackrealestate.com` on `/blog` answers `301 https://www.happyjackrealestate.com/blog`, while
+`www` and the `replit.app` host still answer 200.
 
 ### C4 — Two scripts are injected at serve time, and one of them is in the CSP on purpose.
 
@@ -168,10 +200,11 @@ the certificate, not just the verification.
 2. Add the GSC DNS TXT · confirm the `replit-verify` TXT is present and stays. **(before DNS)**
 3. Point the deployment at `build/happyjack-mirror-hosted` — not the staging tree.
 4. Disable the injected scripts + badge; drop `i.replit.com` from `script-src`.
-5. Decide the 301 layer for the 12 legacy URLs (C3) and configure apex → `www`.
+5. Wire the nine legacy URLs into the server as real 301s (C3) and configure apex → `www` there too —
+   Replit's Domains tool issues A records only and does no redirecting of its own.
 6. Publish and attach the custom domain; wait for the certificate.
 7. Verify, from outside:
-   - `/` returns 200, **no** `robots` meta, exactly one canonical on `https://www.happyjackrealestate.com`
+   - `/` returns 200 with `index, follow` and **no** `noindex`, exactly one canonical on `https://www.happyjackrealestate.com`
    - `/robots.txt` returns 200 and references the sitemap; `/sitemap.xml` and `/llms.txt` return 200
    - a legacy Wix URL answers **301**, not 200 and not a rewrite
    - a fetched page is byte-identical to its file in `build/happyjack-mirror-hosted` (proves no injection)

@@ -22,6 +22,7 @@ small, additive, and each one has a stated way to check it is done.
 | File | What it asks for | Effort | When | Issue |
 |---|---|---|---|---|
 | [`PRE-CUTOVER-CONCERNS.md`](PRE-CUTOVER-CONCERNS.md) | **The backup was verified against the live site. Read before switching DNS** — deployment config, sitemap, redirects, posted 25 Nov | — | **Before cutover** | [#9](../../issues/9) |
+| [`CUTOVER-INSTRUCTIONS-2026-11-25.md`](CUTOVER-INSTRUCTIONS-2026-11-25.md) | **Step-by-step cutover, plain language** — the three code strings, the five DNS records, the checks, the undo card. Drop-in 301 patch in [`patches/`](patches/happyjack-cutover-server.patch) | — | **Cutover day** | [#9](../../issues/9) |
 | [`00-launch-gate.md`](00-launch-gate.md) | Six things that must be true at cutover or the site is invisible to Google | — | **Before launch** | [#1](../../issues/1) |
 | [`01-no-hoa-land.md`](01-no-hoa-land.md) | Answer "land for sale … no HOA" — the single most specific buying phrase in this market | M | After launch | [#2](../../issues/2) |
 | [`02-for-sale-by-owner.md`](02-for-sale-by-owner.md) | Answer "by owner" / FSBO searches on the search pages | S | After launch | [#3](../../issues/3) |

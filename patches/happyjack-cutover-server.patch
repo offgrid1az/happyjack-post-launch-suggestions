@@ -1,0 +1,84 @@
+diff --git a/server.py b/server.py
+index 5fee1be..220f671 100644
+--- a/server.py
++++ b/server.py
+@@ -4,6 +4,7 @@ Run with gunicorn, never serve the repository root.
+ """
+ from http import HTTPStatus
+ from pathlib import Path
++import json
+ import mimetypes
+ import gzip
+ import hashlib
+@@ -19,6 +20,27 @@ from featured_listings import page_security_policy
+ ROOT = Path(__file__).resolve().parent
+ 
+ 
++def legacy_redirects():
++    """The 301 map for old URLs, from hosting/redirects.json (same source as _redirects)."""
++    spec = json.loads((ROOT / "hosting" / "redirects.json").read_text(encoding="utf-8"))
++    rules = list(spec["rules"]) + ([spec["safety_net"]] if spec.get("safety_net") else [])
++    return [(r["source"], r["target"], int(r["status"])) for r in rules]
++
++
++LEGACY = legacy_redirects()
++
++
++def legacy_target(path):
++    """First-match-wins, with a trailing * meaning 'everything under this prefix'."""
++    for source, target, status in LEGACY:
++        if source.endswith("*"):
++            if path.startswith(source[:-1]):
++                return target, status
++        elif path == source or path == source + "/":
++            return target, status
++    return None
++
++
+ def accepts_gzip(value):
+     """Honor explicit exclusions, including gzip;q=0 overriding a wildcard."""
+     qualities = {}
+@@ -54,17 +76,39 @@ def versioned_asset(candidate, public, query):
+ 
+ def create_app(directory=None, secret=None):
+     deployment = tomllib.loads((ROOT / ".replit").read_text())["deployment"]
+-    public = Path(directory or ROOT / "build/staging-noindex").resolve()
+-    if violations(str(public), "staging"):
++    public = Path(directory or ROOT / "build/happyjack-mirror-hosted").resolve()
++    if violations(str(public), "hosted"):
+         raise RuntimeError("Public-root safety check failed")
+     chat = ChatService(public, secret)
+ 
++    BARE = "happyjackrealestate.com"
++    CANONICAL_HOST = "www." + BARE
++
+     def app(environ, start_response):
+         path = environ.get("PATH_INFO", "/")
+-        if path.startswith("/api/chat"):
+-            return chat(environ, start_response)
++        # One address for the site: bare domain and the replit.app host both 301 to www.
++        host = (environ.get("HTTP_HOST") or "").split(":")[0].lower()
++        if host == BARE:
++            location = "https://" + CANONICAL_HOST + path
++            if environ.get("QUERY_STRING"):
++                location += "?" + environ["QUERY_STRING"]
++            start_response("301 Moved Permanently", [("Location", location),
++                                                     ("Content-Length", "0"),
++                                                     ("Cache-Control", "private, no-cache")])
++            return [b""]
+         headers = [(rule["name"], rule["value"]) for rule in deployment.get("responseHeaders", [])
+                    if matches(rule["path"], path)]
++        match = legacy_target(unquote(path))
++        if match:
++            target, status = match
++            if environ.get("QUERY_STRING"):
++                target += "?" + environ["QUERY_STRING"]
++            start_response(f"{status} Moved Permanently", headers + [("Location", target),
++                                                                   ("Content-Length", "0"),
++                                                                   ("Cache-Control", "private, no-cache")])
++            return [b""]
++        if path.startswith("/api/chat"):
++            return chat(environ, start_response)
+         headers = [(name, page_security_policy(value, path)
+                     if name.lower() == "content-security-policy" else value)
+                    for name, value in headers]
