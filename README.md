@@ -21,6 +21,7 @@ small, additive, and each one has a stated way to check it is done.
 
 | File | What it asks for | Effort | When | Issue |
 |---|---|---|---|---|
+| [`PRE-CUTOVER-CONCERNS.md`](PRE-CUTOVER-CONCERNS.md) | **The backup was verified against the live site. Read before switching DNS** — deployment config, sitemap, redirects, posted 25 Nov | — | **Before cutover** | [#9](../../issues/9) |
 | [`00-launch-gate.md`](00-launch-gate.md) | Six things that must be true at cutover or the site is invisible to Google | — | **Before launch** | [#1](../../issues/1) |
 | [`01-no-hoa-land.md`](01-no-hoa-land.md) | Answer "land for sale … no HOA" — the single most specific buying phrase in this market | M | After launch | [#2](../../issues/2) |
 | [`02-for-sale-by-owner.md`](02-for-sale-by-owner.md) | Answer "by owner" / FSBO searches on the search pages | S | After launch | [#3](../../issues/3) |
@@ -55,5 +56,6 @@ say so in the issue and it gets corrected here.
 The staging build is currently **not indexable**: every page carries
 `<meta name="robots" content="noindex, nofollow, noarchive">`, `robots.txt` says
 `Disallow: /`, there is no `/sitemap.xml` (404) and no canonical tag anywhere. That is correct
-for staging and must be reversed at cutover. It is item one in
+for staging and must be reversed at cutover. (The sitemap is not missing from the build — staging
+deliberately drops it; see [`PRE-CUTOVER-CONCERNS.md`](PRE-CUTOVER-CONCERNS.md) C2.) It is item one in
 [`00-launch-gate.md`](00-launch-gate.md) and it is the only thing here that is genuinely urgent.

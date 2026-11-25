@@ -48,11 +48,14 @@ parameters, if any). Do not block CSS or JS — Google renders the page and need
 
 ## 3. Ship a sitemap
 
-**Today:** `/sitemap.xml` returns **404** (21,230-byte error page). The build has no sitemap at all.
+**Today:** `/sitemap.xml` returns **404** (21,230-byte error page).
 
-Generate one listing every canonical URL — 25 pages and 25 posts — with `<lastmod>`. It does not
-need to be generated at request time; a static file regenerated on each deploy is fine. Reference
-it from `robots.txt` as above and submit it in Search Console (item 5).
+**Correction (25 Nov):** the build does generate a sitemap — 58 URLs, all on `www`, no trailing slashes, all
+`<lastmod>2026-11-20`. `stage_noindex.py` is what removes it from the deployed staging copy, along with
+`llms.txt`. So this item is "deploy the sitemap you already have", not "write one". See
+[`PRE-CUTOVER-CONCERNS.md`](PRE-CUTOVER-CONCERNS.md) C2 for the check.
+
+Reference it from `robots.txt` as above and submit it in Search Console (item 5).
 
 **Check:** `/sitemap.xml` returns 200, `Content-Type: application/xml`, and the URL count matches
 the number of deployed pages.
