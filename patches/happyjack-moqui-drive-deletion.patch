@@ -1,0 +1,117 @@
+diff --git a/hosting/.htaccess b/hosting/.htaccess
+index 36a7756..983c22f 100644
+--- a/hosting/.htaccess
++++ b/hosting/.htaccess
+@@ -13,7 +13,6 @@
+   RewriteEngine On
+   RewriteBase /
+   RewriteRule ^home/?$ / [R=301,L]
+-  RewriteRule ^moqui-drive/?$ / [R=301,L]
+   RewriteRule ^post\/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona/?$ /posts/owning-vs-renting-a-cabin-in-happy-jack [R=301,L]
+   RewriteRule ^post\/escape-to-happy-jack-arizona-your-gateway-to-mountain-retreat-bliss/?$ /posts/owning-vs-renting-a-cabin-in-happy-jack [R=301,L]
+   RewriteRule ^pages-sitemap.xml/?$ /sitemap.xml [R=301,L]
+diff --git a/hosting/_redirects b/hosting/_redirects
+index 56da885..473e211 100644
+--- a/hosting/_redirects
++++ b/hosting/_redirects
+@@ -2,7 +2,6 @@
+ # First match wins, so the exact rules come before the /post/* net.
+ 
+ /home                                                                  /                                                    301
+-/moqui-drive                                                           /                                                    301
+ /post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona      /posts/owning-vs-renting-a-cabin-in-happy-jack       301
+ /post/escape-to-happy-jack-arizona-your-gateway-to-mountain-retreat-bliss /posts/owning-vs-renting-a-cabin-in-happy-jack       301
+ /pages-sitemap.xml                                                     /sitemap.xml                                         301
+diff --git a/hosting/netlify.toml b/hosting/netlify.toml
+index 77088a5..62363b8 100644
+--- a/hosting/netlify.toml
++++ b/hosting/netlify.toml
+@@ -7,12 +7,6 @@
+   status = 301
+   force = true
+ 
+-[[redirects]]
+-  from = "/moqui-drive"
+-  to = "/"
+-  status = 301
+-  force = true
+-
+ [[redirects]]
+   from = "/post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona"
+   to = "/posts/owning-vs-renting-a-cabin-in-happy-jack"
+diff --git a/hosting/redirects.json b/hosting/redirects.json
+index 3b45ce6..6ed99ef 100644
+--- a/hosting/redirects.json
++++ b/hosting/redirects.json
+@@ -15,12 +15,6 @@
+       "status": 301,
+       "why": "Live Wix serves a duplicate homepage at /home that is not in the sitemap but is indexed; its canonical already points at the apex."
+     },
+-    {
+-      "source": "/moqui-drive",
+-      "target": "/",
+-      "status": 301,
+-      "why": "One listing, 1392 Moqui Drive AZ 86024. Its IDX detail page is gone and nothing in the mirror replaces it, so it goes home rather than to a wrong page."
+-    },
+     {
+       "source": "/post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona",
+       "target": "/posts/owning-vs-renting-a-cabin-in-happy-jack",
+@@ -72,6 +66,7 @@
+     "/testimonials",
+     "/blog",
+     "/contact",
+-    "/selling-strategy"
++    "/selling-strategy",
++    "/moqui-drive"
+   ]
+ }
+diff --git a/hosting/vercel.json b/hosting/vercel.json
+index e43c376..b46e685 100644
+--- a/hosting/vercel.json
++++ b/hosting/vercel.json
+@@ -7,11 +7,6 @@
+       "destination": "/",
+       "permanent": true
+     },
+-    {
+-      "source": "/moqui-drive",
+-      "destination": "/",
+-      "permanent": true
+-    },
+     {
+       "source": "/post/owning-vs-renting-the-cabin-lifestyle-in-happy-jack-arizona",
+       "destination": "/posts/owning-vs-renting-a-cabin-in-happy-jack",
+diff --git a/test_redirects.py b/test_redirects.py
+index 28fe1e1..6174127 100644
+--- a/test_redirects.py
++++ b/test_redirects.py
+@@ -31,9 +31,13 @@ ROOT = HERE
+ # What the live Wix site publishes today, counted from its three sitemaps on
+ # 2026-11-14 and confirmed 200. Hard-coded on purpose: this is the input the map
+ # has to satisfy, so it must not drift silently with the mirror.
++# Deleted, not redirected: the sold listing page was removed 2026-10-29 by owner
++# decision (DESIGN_FEEDBACK.md, PAGE SET) and stays removed. Individual listings
++# come from the IDX feed. A 404 is the intended, final answer for it.
++GONE_URLS = ["/moqui-drive"]
++
+ LIVE_URLS = [
+     "/",
+-    "/moqui-drive",
+     "/thank-you",
+     "/meet-the-team",
+     "/happy-jack-lifestyle",
+@@ -148,6 +152,14 @@ def live_checks(rules):
+ 
+     op = urllib.request.build_opener(NoRedirect)
+     rows, fails = [], []
++    for u in GONE_URLS:
++        try:
++            code = op.open(f"http://127.0.0.1:{port}{u}", timeout=10).status
++        except urllib.error.HTTPError as e:
++            code = e.code
++        rows.append((u, code, None, code == 404))
++        if code != 404:
++            fails.append(f"{u}: answered {code}, expected 404 (page deleted, not redirected)")
+     try:
+         for u in LIVE_URLS:
+             url = f"http://127.0.0.1:{port}{u}"

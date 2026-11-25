@@ -119,12 +119,14 @@ before file resolution, keeping the query string and the deployment's security h
 `CUTOVER-INSTRUCTIONS-2026-11-25.md` §1.3 (`patches/happyjack-cutover-server.patch`). It also adds the piece
 Replit does not provide at all: **bare domain → `www` 301**.
 
-**`/moqui-drive` is deliberately excluded, and this report previously got that wrong.** It maps to `/` in
-`hosting/redirects.json`, but `AUDIT-DECISIONS-2026-11-17.md` F5 records the opposite decision — the sold
-listing was deleted 2026-10-29 and *"No generic homepage 301 was invented; any launch redirect should follow
-the approved legacy map."* The live host follows the decision, not the artifact: 404. The patch holds that
-one URL at 404 and carries the reason in a comment, so the contradiction cannot be closed silently by a
-deploy. Reconciling `redirects.json`, `test_redirects.py` and the decision is an owner call, in one commit.
+**`/moqui-drive` is deleted and stays 404 — and removing the leftover rule matters more than adding the
+redirect.** `hosting/redirects.json` was written before a host was chosen and still carried a 301 to `/` for
+the sold listing, which `make_redirects.py` propagated into `_redirects`, `netlify.toml`, `vercel.json` and
+`.htaccess`, and which `test_redirects.py` enforced by treating the dead URL as live. Every one of those is
+now removed in `patches/happyjack-moqui-drive-deletion.patch`, and the test asserts a 404 instead, so a
+future rebuild cannot quietly resurrect the redirect. (This report previously described that 301 as the
+desired behaviour — wrong; the owner deleted the page on 29 Oct and `AUDIT-DECISIONS-2026-11-17.md` F5
+records that no redirect was invented for it.)
 
 **Checked after the patch:** all nine rules answer 301 with query strings preserved, and
 `Host: happyjackrealestate.com` on `/blog` answers `301 https://www.happyjackrealestate.com/blog`, while

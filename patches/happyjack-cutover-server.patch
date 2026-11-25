@@ -1,5 +1,5 @@
 diff --git a/server.py b/server.py
-index 5fee1be..eee4569 100644
+index 5fee1be..220f671 100644
 --- a/server.py
 +++ b/server.py
 @@ -4,6 +4,7 @@ Run with gunicorn, never serve the repository root.
@@ -10,7 +10,7 @@ index 5fee1be..eee4569 100644
  import mimetypes
  import gzip
  import hashlib
-@@ -19,6 +20,38 @@ from featured_listings import page_security_policy
+@@ -19,6 +20,27 @@ from featured_listings import page_security_policy
  ROOT = Path(__file__).resolve().parent
  
  
@@ -24,19 +24,8 @@ index 5fee1be..eee4569 100644
 +LEGACY = legacy_redirects()
 +
 +
-+# Held deliberately at 404, against the map in hosting/redirects.json.
-+# AUDIT-DECISIONS-2026-11-17.md F5: "[No] generic homepage 301 was invented; any
-+# launch redirect should follow the approved legacy map." The sold listing was
-+# deleted 2026-10-29 (DESIGN_FEEDBACK.md, PAGE SET); the pre-host artifact still
-+# carries a rule for it, so the server refuses that one rule until the artifact
-+# and the decision are reconciled in one commit.
-+HELD_LEGACY = {"/moqui-drive"}
-+
-+
 +def legacy_target(path):
 +    """First-match-wins, with a trailing * meaning 'everything under this prefix'."""
-+    if path.rstrip("/") in HELD_LEGACY:
-+        return None
 +    for source, target, status in LEGACY:
 +        if source.endswith("*"):
 +            if path.startswith(source[:-1]):
@@ -49,7 +38,7 @@ index 5fee1be..eee4569 100644
  def accepts_gzip(value):
      """Honor explicit exclusions, including gzip;q=0 overriding a wildcard."""
      qualities = {}
-@@ -54,17 +87,39 @@ def versioned_asset(candidate, public, query):
+@@ -54,17 +76,39 @@ def versioned_asset(candidate, public, query):
  
  def create_app(directory=None, secret=None):
      deployment = tomllib.loads((ROOT / ".replit").read_text())["deployment"]

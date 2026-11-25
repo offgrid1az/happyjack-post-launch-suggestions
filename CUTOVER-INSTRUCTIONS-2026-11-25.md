@@ -130,6 +130,9 @@ the staging folder back.
 
 ### 1.3 Three old Wix addresses will 404 unless you add the 301 map
 
+Two patches ship together: `patches/happyjack-moqui-drive-deletion.patch` (removes the leftover rule and
+makes the test enforce the deletion) and `patches/happyjack-cutover-server.patch` (the server switch).
+
 Checked live today on `happyjack-site.replit.app`. Nine old addresses need to keep working:
 
 | Old address | Today | Must be |
@@ -147,19 +150,15 @@ Checked live today on `happyjack-site.replit.app`. Nine old addresses need to ke
 The three Wix sitemap children are addresses Google has already seen; a 404 there costs a little
 traffic and a Search Console error, a 301 costs nothing.
 
-**`/moqui-drive` is different, and it is the one place where this document disagrees with the
-repository.** The listing was deleted on 29 Oct 2026 (sold; individual listings now come from the IDX
-feed), and `AUDIT-DECISIONS-2026-11-17.md` F5 records the decision to leave it as a **genuine 404**:
-*"No generic homepage 301 was invented."* But `hosting/redirects.json` — written before a host was
-chosen — still maps it to `/`, and `make_redirects.py` propagates that into `_redirects` and
-`vercel.json`. So the artifact and the decision contradict each other, and the live host follows the
-decision (404).
+**`/moqui-drive` is deleted, and stays deleted.** The owner removed that page on 29 Oct 2026 — it was
+one sold listing, and listings now come from the IDX feed. It returns 404 today and must still return
+404 afterwards. Do not "helpfully" add a redirect for it.
 
-**Do not resolve that contradiction by accident.** The patch below reads `redirects.json` for the
-other eight rules and refuses the `/moqui-drive` one, with a comment saying why. If you want it to
-redirect instead, that is a decision for the owner, and it belongs in one commit that changes
-`hosting/redirects.json`, `test_redirects.py` (which currently requires every live URL to be
-covered) and this document together.
+It is worth knowing why it kept appearing in plans: `hosting/redirects.json` was written before a host
+was chosen and still carried a 301 to `/` for it, which `make_redirects.py` propagated into
+`_redirects`, `netlify.toml`, `vercel.json` and `.htaccess`, and which `test_redirects.py` enforced by
+treating the dead URL as live. All of that is removed in `patches/happyjack-moqui-drive-deletion.patch`,
+and the test now asserts a 404 instead — so the deletion is enforced, not merely described.
 
 For the other eight, all the rules already exist in `hosting/redirects.json` and are used to generate
 `_redirects`; they are simply not wired into the Python server. A drop-in patch is attached:
