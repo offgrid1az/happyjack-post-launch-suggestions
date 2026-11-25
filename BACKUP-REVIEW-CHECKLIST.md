@@ -76,10 +76,15 @@ chained*: nothing validates it today, and the cutover cannot break resolution th
 
 Two things follow, and they are not obvious:
 
-- **Do not enable DNSSEC at the registrar** while moving nameservers. A DS published for Wix's key, with
-  nameservers at Replit that do not hold that key, makes the entire domain fail to resolve — website,
-  mail, everything — and the failure looks like "the site is down", not like a DNSSEC problem.
-- **After the move, Wix's zone and its keys are gone.** If the registrar ever shows a DS record for this
+- **Do not enable DNSSEC at the registrar**, and do not publish a DS for any provider. This plan keeps
+  Wix's nameservers and changes only the website records, so the signed zone stays where the key is and
+  nothing needs touching. If the zone ever moves, a DS pointing at a key the new host does not hold makes
+  the entire domain fail to resolve — website, mail, everything — and it presents as "the site is down".
+- **Keeping Wix's nameservers keeps the domain inside the Wix account.** The record change works, but the
+  address book still lives with Wix: cancelling the Wix subscription would take the domain down with it,
+  however healthy the Replit deployment is. Moving DNS to the registrar is a **prerequisite for cancelling
+  Wix**, not part of this cutover.
+- **After any zone move, Wix's keys are gone.** If the registrar ever shows a DS record for this
   domain, remove it *before* changing the nameservers. Confirm the registrar's DNSSEC state explicitly
   rather than inferring it from Wix's toggle.
 
